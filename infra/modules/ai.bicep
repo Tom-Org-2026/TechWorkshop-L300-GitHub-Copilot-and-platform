@@ -8,17 +8,17 @@ param gpt4ModelName string = 'gpt-4o'
 @description('GPT-4 model version. Update if a newer version is available in westus3.')
 param gpt4ModelVersion string = '2024-05-13'
 
-@description('Phi family model name to deploy.')
-param phiModelName string = 'Phi-3-mini-4k-instruct'
+@description('Phi family model name to deploy. Must be available under AIServices GlobalStandard in westus3.')
+param phiModelName string = 'Phi-4-mini-instruct'
 
-@description('Phi model version. Update if a newer version is available in westus3.')
-param phiModelVersion string = '14'
+@description('Phi model version. Latest stable GlobalStandard version in westus3.')
+param phiModelVersion string = '1'
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: aiServicesName
   location: location
   tags: tags
-  kind: 'OpenAI'
+  kind: 'AIServices'
   sku: {
     name: 'S0'
   }
@@ -28,11 +28,11 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   }
 }
 
-resource gpt4Deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+resource gpt4Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: aiServices
   name: 'gpt-4'
   sku: {
-    name: 'Standard'
+    name: 'GlobalStandard'
     capacity: 10
   }
   properties: {
@@ -44,11 +44,12 @@ resource gpt4Deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-0
   }
 }
 
-resource phiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+resource phiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: aiServices
   name: 'phi'
+  dependsOn: [gpt4Deployment]
   sku: {
-    name: 'Standard'
+    name: 'GlobalStandard'
     capacity: 1
   }
   properties: {
