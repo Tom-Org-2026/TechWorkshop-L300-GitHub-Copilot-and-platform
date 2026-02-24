@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: ZavaStorefront
+metadata:
+  template: ZavaStorefront@0.0.1-beta
+
+services:
+  web:
+    project: ./src
+    language: csharp
+    host: appservice
+    docker:
+      path: ./Dockerfile
+      context: .
+
+infra:
+  provider: bicep
+  path: infra
+
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: |
+        ACR_NAME=$(azd env get-values --no-prompt 2>/dev/null | grep AZURE_CONTAINER_REGISTRY_NAME | cut -d= -f2 | tr -d '"')
+        if [ -n "$ACR_NAME" ]; then
+          echo "Building image remotely via ACR Tasks..."
+          az acr build --registry "$ACR_NAME" --image "zavastorefront:latest" --file Dockerfile .
+        fi
+      interactive: false
+      continueOnError: true
+    windows:
+      shell: pwsh
+      run: |
+        $acrName = (azd env get-values --no-prompt 2>$null | Select-String "AZURE_CONTAINER_REGISTRY_NAME").ToString().Split("=")[1].Trim('"')
+        if ($acrName) {
+          Write-Host "Building image remotely via ACR Tasks..."
+          az acr build --registry $acrName --image "zavastorefront:latest" --file Dockerfile .
+        }
+      interactive: false
+      continueOnError: true
