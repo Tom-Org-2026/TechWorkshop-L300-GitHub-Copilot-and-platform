@@ -3,8 +3,7 @@ name: Build and Deploy to App Service
 on:
   push:
     branches: [main]
-  pull_request:
-   branches: [ '*' ]
+
    
   workflow_dispatch:
 
@@ -28,14 +27,20 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Login to ACR
-        run: az acr login --name ${{ vars.ACR_LOGIN_SERVER }}
+        env:
+          ACR_LOGIN_SERVER: ${{ vars.ACR_NAME }}.azurecr.io
+        run: |
+          token=$(az acr login --name ${{ vars.ACR_NAME }} --expose-token --output tsv --query accessToken)
+          docker login $ACR_LOGIN_SERVER --username 00000000-0000-0000-0000-000000000000 --password "$token"
 
       - name: Build and push container image
+        env:
+          ACR_LOGIN_SERVER: ${{ vars.ACR_NAME }}.azurecr.io
         run: |
-          docker build -t ${{ vars.ACR_LOGIN_SERVER }}/zavastorefront:${{ github.sha }} \
-                       -t ${{ vars.ACR_LOGIN_SERVER }}/zavastorefront:latest .
-          docker push ${{ vars.ACR_LOGIN_SERVER }}/zavastorefront:${{ github.sha }}
-          docker push ${{ vars.ACR_LOGIN_SERVER }}/zavastorefront:latest
+          docker build -t $ACR_LOGIN_SERVER/zavastorefront:${{ github.sha }} \
+                       -t $ACR_LOGIN_SERVER/zavastorefront:latest .
+          docker push $ACR_LOGIN_SERVER/zavastorefront:${{ github.sha }}
+          docker push $ACR_LOGIN_SERVER/zavastorefront:latest
 
       - name: Restart App Service to pull new image
         run: |

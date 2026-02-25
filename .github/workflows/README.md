@@ -16,9 +16,8 @@ $tenantId         = "60b20c52-6462-4ab8-b261-32d173b5e51c"
 # Azure portal → Resource Groups, or: az group list --query "[].name" -o tsv
 $resourceGroup    = "rg-l300ghcopilot"
 
-# Azure portal → Container Registries → your ACR → Overview → Login server
+# Azure portal → Container Registries → your ACR → Overview → Name (not the full login server URL)
 $acrName          = "cr4fsk7c4ej7jfm"
-$acrLoginServer   = "$acrName.azurecr.io"
 
 # Azure portal → App Services → your app → Overview → Name
 $webAppName       = "app-4fsk7c4ej7jfm"
@@ -27,25 +26,25 @@ $webAppName       = "app-4fsk7c4ej7jfm"
 $githubRepo       = "Tom-Org-2026/TechWorkshop-L300-GitHub-Copilot-and-platform"
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Create the service principal and capture its clientId
+# Create the service principal and capture its appId
 $sp = az ad sp create-for-rbac --name "github-zavastorefront" --role Contributor `
   --scopes /subscriptions/$subscriptionId/resourceGroups/$resourceGroup `
   --json-auth | ConvertFrom-Json
 $appId = $sp.clientId
 
-# Add a federated credential for the repository
-$federatedCredential = @{
-    name      = "github-actions"
-    issuer    = "https://token.actions.githubusercontent.com"
-    subject   = "repo:$($githubRepo):ref:refs/heads/main"
-    audiences = @("api://AzureADTokenExchange")
-} | ConvertTo-Json
+# Get the SP object ID — required for role assignments (appId does not work)
+$spObjectId = az ad sp show --id $appId --query id -o tsv
 
-az ad app federated-credential create --id $appId --parameters $federatedCredential
+# Add federated credential — write JSON to a temp file to avoid PowerShell quoting issues
+$tmpFile = [System.IO.Path]::GetTempFileName() + ".json"
+"{`"name`":`"github-actions`",`"issuer`":`"https://token.actions.githubusercontent.com`",`"subject`":`"repo:$githubRepo`:ref:refs/heads/main`",`"audiences`":[`"api://AzureADTokenExchange`"]}" `
+  | Out-File -FilePath $tmpFile -Encoding utf8 -NoNewline
+az ad app federated-credential create --id $appId --parameters "@$tmpFile"
+Remove-Item $tmpFile
 
-# Grant AcrPush role on the ACR
+# Grant AcrPush role on the ACR using the SP object ID
 az role assignment create `
-  --assignee $appId `
+  --assignee $spObjectId `
   --role AcrPush `
   --scope /subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.ContainerRegistry/registries/$acrName
 
@@ -55,7 +54,7 @@ Write-Host "AZURE_CLIENT_ID:       $appId"
 Write-Host "AZURE_TENANT_ID:       $tenantId"
 Write-Host "AZURE_SUBSCRIPTION_ID: $subscriptionId"
 Write-Host "`n── GitHub Variables ─────────────────────────────"
-Write-Host "ACR_LOGIN_SERVER:      $acrLoginServer"
+Write-Host "ACR_NAME:              $acrName"
 Write-Host "AZURE_WEBAPP_NAME:     $webAppName"
 Write-Host "AZURE_RESOURCE_GROUP:  $resourceGroup"
 ```
@@ -78,6 +77,6 @@ The script prints all values at the end — copy them from the terminal output.
 
 | Variable | Source |
 |---|---|
-| `ACR_LOGIN_SERVER` | Azure portal → Container Registries → Overview → Login server |
+| `ACR_NAME` | Azure portal → Container Registries → Overview → **Name** (e.g. `cr4fsk7c4ej7jfm`, not the full `.azurecr.io` URL) |
 | `AZURE_WEBAPP_NAME` | Azure portal → App Services → Overview → Name |
 | `AZURE_RESOURCE_GROUP` | Azure portal → Resource Groups |
