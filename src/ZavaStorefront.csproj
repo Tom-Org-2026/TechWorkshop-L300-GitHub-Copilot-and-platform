@@ -6,4 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>0cdbbbf5-712f-4fb3-b6ef-013f0720cc02</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.0" />
+  </ItemGroup>
 </Project>
