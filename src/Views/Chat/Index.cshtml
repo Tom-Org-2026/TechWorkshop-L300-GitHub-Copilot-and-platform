@@ -1,0 +1,22 @@
+@model ZavaStorefront.Models.ChatViewModel
+@{
+    ViewData["Title"] = "Chat";
+}
+
+<h2>Chat with Phi-4</h2>
+
+<form asp-action="Index" method="post">
+    <div class="mb-3">
+        <label asp-for="Prompt" class="form-label">Your prompt</label>
+        <textarea asp-for="Prompt" class="form-control" rows="3" placeholder="Type your message here..."></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Send</button>
+</form>
+
+@if (Model.Response != null)
+{
+    <div class="mt-4">
+        <label class="form-label">Response</label>
+        <textarea class="form-control" rows="6" readonly>@Model.Response</textarea>
+    </div>
+}

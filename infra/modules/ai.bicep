@@ -61,6 +61,6 @@ resource phiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10
   }
 }
 
-output endpoint string = aiServices.properties.endpoint
+output endpoint string = 'https://${aiServices.name}.services.ai.azure.com/models'
 output gpt4DeploymentName string = gpt4Deployment.name
 output phiDeploymentName string = phiDeployment.name
