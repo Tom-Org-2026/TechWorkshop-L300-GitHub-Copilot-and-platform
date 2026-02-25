@@ -1,5 +1,6 @@
 using Azure;
 using Azure.AI.Inference;
+using Azure.Identity;
 
 namespace ZavaStorefront.Services
 {
@@ -12,8 +13,11 @@ namespace ZavaStorefront.Services
         {
             var endpoint = new Uri(config["AZURE_AI_ENDPOINT"]!);
             _deployment = config["AZURE_PHI_DEPLOYMENT_NAME"]!;
-            _client = new ChatCompletionsClient(endpoint, new AzureKeyCredential("placeholder"),
-                new AzureAIInferenceClientOptions());
+
+            var apiKey = config["AZURE_AI_KEY"];
+            _client = string.IsNullOrEmpty(apiKey)
+                ? new ChatCompletionsClient(endpoint, new DefaultAzureCredential())
+                : new ChatCompletionsClient(endpoint, new AzureKeyCredential(apiKey));
         }
 
         public async Task<string> SendAsync(string userMessage)
